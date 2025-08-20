@@ -1,27 +1,30 @@
-const express = require("express")
+const express = require("express");
 
-const app = express()
+const app = express();
 
-app.get("/users",(req,res) => {
-    res.send({firstname : "vishu", lastname : "srivastava" })
-});
+app.use("/test",(req,res,next) => {
+  console.log("Handling Response of user 1");
+  //res.send("Response");
+  next()
 
-app.post("/users",(req,res) => {
-    res.send("Data successfully saved to data base")
-});
+}, (req , res ,next) => {
+    console.log("Handling Response of user 2")
+    //res.send("Response 2")
+    next()
+    
+}, (req , res ,next) => {
+    console.log("Handling Response of user 3")
+    //res.send("Response 3")
+    
 
-app.delete("/users",(req,res) => {
-    res.send("Data deleted")
-});
+  },(req , res ,next) => {
+    console.log("Handling Response of user 4")
+    res.send("Response 4")
+    next()
+  } )
 
-app.use("/test",(req,res) => {
-    res.send("test response from the server test")
-});
-
-// app.use("/",(req,res) => {
-//     res.send("/ response from the server Home")
-// });
+ 
 
 app.listen(3000, () => {
-    console.log("Hello from the server5.....")
+  console.log("Hello from the server5.....");
 });
