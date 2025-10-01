@@ -2,21 +2,57 @@ const express = require("express");
 const connectDB = require("./config/database")
 const Users = require("./models/user")
 const app = express();
+const {validateSignUpData} = require("./utils/validation")
+const bcrypt = require("bcrypt")
 
 app.use(express.json())
 
-app.post("/signUp" , async (req , res) => {
-     //Creating a new instance for the user model
-     const user = new Users(req.body)
+app.post("/signUp", async (req, res) => {
+  try {
+    // validate the data
+    validateSignUpData(req);
 
-     try{
-       await user.save()
-     res.send("User Added Successfully")
-     } catch(err) {
-      res.status(400).send("Error saving the user:" + err.message);
+    const { firstName, lastName, email, password } = req.body;
+
+    // encrypt the password
+    const passwordHash = await bcrypt.hash(password, 10);
+    console.log(passwordHash);
+
+    // Creating a new instance for the user model
+    const user = new Users({
+      firstName,
+      lastName,
+      email,
+      password: passwordHash,
+    });
+
+    await user.save();
+    res.send("User Added Successfully");
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
+});
+
+
+app.post("/login" , async(req,res) => {
+ 
+  try {
+     const {email , password} = req.body;
+     
+     const user = await Users.findOne({email: email})
+     if(!user){
+      throw new Error("Invalid Credentials")
      }
-     
-     
+
+     const isPasswordValid = await bcrypt.compare(password , user.password)
+     if(isPasswordValid){
+        res.send("Login Successfull")
+     }else{
+      throw new Error("Invalid is Credentials")
+     }
+  } catch (err) {
+    res.status(400).send("Error: " + err.message);
+  }
 })
 
 // find all the users with the given email
@@ -81,16 +117,36 @@ app.delete("/user", async (req, res) => {
 
 //update a user from database
 
-app.patch("/user", async (req , res) => {
- const userId = req.body.userId
- const data = req.body
+app.patch("/user/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  const updates = req.body;
+
   try {
-    await Users.findByIdAndUpdate(userId,data)
-    res.send("User Updated successfully")
+    const ALLOWED_UPDATES = ["photoUrl", "gender", "about", "age", "skills"];
+    const isUpdateAllowed = Object.keys(updates).every((k) =>
+      ALLOWED_UPDATES.includes(k)
+    );
+
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed");
+    }
+
+    const updatedUser = await Users.findByIdAndUpdate(userId, updates, {
+      runValidators: true,
+      new: true
+    });
+
+    if (!updatedUser) {
+      return res.status(404).send("User not found");
+    }
+
+    res.send(updatedUser);
   } catch (error) {
-    res.status(400).send("Something wend wrong")
+    res.status(400).send("Something went wrong: " + error.message);
   }
-})
+});
+
+
 
 
 
