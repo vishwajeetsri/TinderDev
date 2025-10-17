@@ -5,6 +5,7 @@ const Users = require("../models/user");
 
 const requestRouter = express.Router();
 
+// Send a connection request
 requestRouter.post(
   "/request/send/:status/:toUserId",
   userAuth,
@@ -20,8 +21,6 @@ requestRouter.post(
           .status(400)
           .json({ message: "Invalid status type: " + status });
       }
-
-      //check if there is a existing connection request
 
       const existingConnectionRequest = await ConnectionRequest.findOne({
         $or: [
@@ -50,7 +49,7 @@ requestRouter.post(
       const data = await connectionRequest.save();
 
       res.json({
-        message: req.user.firstName + status + " in " + toUser.firstName,
+        message: req.user.firstName + " " + status + " " + toUser.firstName,
         data,
       });
     } catch (err) {
@@ -59,10 +58,11 @@ requestRouter.post(
   }
 );
 
+// Review a connection request
 requestRouter.post(
   "/request/review/:status/:requestId",
   userAuth,
-  async ( req , res ) => {
+  async (req, res) => {
     try {
       const loggedInUser = req.user._id;
       const { status, requestId } = req.params;
@@ -77,6 +77,7 @@ requestRouter.post(
         toUserId: loggedInUser,
         status: "interested",
       });
+
       if (!connectionRequest) {
         return res
           .status(404)
@@ -84,14 +85,27 @@ requestRouter.post(
       }
 
       connectionRequest.status = status;
+      const data = await connectionRequest.save();
 
-      const data = await connectionRequest.save()
-
-      res.json({message: "Connection request " + status, data })
+      res.json({ message: "Connection request " + status, data });
     } catch (err) {
       res.status(400).send("ERROR: " + err.message);
     }
   }
 );
+
+
+requestRouter.get("/user/request/received", userAuth, async (req, res) => {
+  try {
+    const requests = await ConnectionRequest.find({
+      toUserId: req.user._id,
+      status: "interested",
+    }).populate("fromUserId", "firstName lastName age gender photoUrl about");
+
+    res.json({ message: "Received requests", data: requests });
+  } catch (err) {
+    res.status(400).send("ERROR: " + err.message);
+  }
+});
 
 module.exports = requestRouter;

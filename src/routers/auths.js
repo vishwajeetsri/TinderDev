@@ -1,8 +1,7 @@
-const {validateSignUpData} = require("../utils/validation");
-const Users = require("../models/user")
-const express = require("express")
+const { validateSignUpData } = require("../utils/validation");
+const Users = require("../models/user");
+const express = require("express");
 const bcrypt = require("bcrypt");
-
 
 const authRouter = express.Router();
 
@@ -25,45 +24,52 @@ authRouter.post("/signUp", async (req, res) => {
       password: passwordHash,
     });
 
-    await user.save();
-    res.send("User Added Successfully");
+    const savedUsers = await user.save();
+
+    const token = await savedUsers.getJWT();
+
+      //Add token to the cookies and sending the response to the user
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+      });
+    res.json({message: "User Added Successfully!", data: savedUsers });
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }
 });
 
-authRouter.post("/login" , async(req,res) => { 
- 
+authRouter.post("/login", async (req, res) => {
   try {
-     const {email , password} = req.body;
-     
-     const user = await Users.findOne({email: email})
-     if(!user){
-      throw new Error("Invalid Credentials")
-     }
+    const { email, password } = req.body;
 
-     const isPasswordValid = await user.validatePassword(password);
-     if(isPasswordValid){
-        //Creating a JWT token 
-        const token = await user.getJWT();
-        
+    const user = await Users.findOne({ email: email });
+    if (!user) {
+      throw new Error("Invalid Credentials");
+    }
 
-        //Add token to the cookies and sending the response to the user
-        res.cookie("token" , token , {expires: new Date(Date.now() + 8 * 3600000)} )
-        res.send("Login Successfull")
-     }else{
-      throw new Error("Invalid is Credentials")
-     }
+    const isPasswordValid = await user.validatePassword(password);
+    if (isPasswordValid) {
+      //Creating a JWT token
+      const token = await user.getJWT();
+
+      //Add token to the cookies and sending the response to the user
+      res.cookie("token", token, {
+        expires: new Date(Date.now() + 8 * 3600000),
+      });
+      res.send(user);
+    } else {
+      throw new Error("Invalid is Credentials");
+    }
   } catch (err) {
     res.status(400).send("Error: " + err.message);
   }
-})
+});
 
-authRouter.post("/logout" , async (req , res) => {
-   res.cookie("token", null , {
-     expires : new Date(Date.now())
-   })
-   res.send("Logout Sucessfully!!!")
-})
+authRouter.post("/logout", async (req, res) => {
+  res.cookie("token", null, {
+    expires: new Date(Date.now()),
+  });
+  res.send("Logout Sucessfully!!!");
+});
 
 module.exports = authRouter;
