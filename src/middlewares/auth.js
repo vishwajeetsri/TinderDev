@@ -10,7 +10,7 @@ try {
         return res.status(401).send("Please Login!!")
     }
 
-    const decodeObj = await jwt.verify(token , "DEV@Tinder$790")
+    const decodeObj = await jwt.verify(token , process.env.JWT_SECRET)
 
     const { _id } = decodeObj
 
