@@ -18,17 +18,23 @@ const authRouter = require("./routers/auths")
 const profileRouter = require("./routers/profile")
 const requestRouter = require("./routers/request")
 const userRouter = require("./routers/user")
+const http = require("http");
+const initializeSocket = require("./utils/socket");
 
 app.use("/" , authRouter);
 app.use("/" , profileRouter);
 app.use("/" , requestRouter);
 app.use("/" ,  userRouter)
 
+const server = http.createServer(app);
+initializeSocket(server);
+
+
 
 connectDB().then(() => {
     console.log("Database Connection is Established...")
 
-    app.listen(process.env.PORT, () => {
+    server.listen(process.env.PORT, () => {
   console.log("Hello from the server5.....");
 });
 })
